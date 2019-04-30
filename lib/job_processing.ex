@@ -2,14 +2,16 @@ defmodule JobProcessing do
   @moduledoc """
   this module performs the processing to fix order of the commands
   """
+  @table :tasks
 
   def get_ordered_commands(%{"tasks" => tasks}) when is_list(tasks) do
+    :ets.new(@table, [:named_table, :public])
     g = Graph.new()
 
     try do
       g =
         tasks
-        |> Enum.reduce(g, fn v, g -> add_vertices_edges(g, v) end)
+        |> Enum.reduce(g, fn v, g -> build_graph(g, v) end)
 
       g
       |> Graph.is_acyclic?()
@@ -18,13 +20,29 @@ defmodule JobProcessing do
         false -> raise(ArgumentError, "Cycles exist")
       end
       |> Graph.postorder()
+      |> Enum.map(fn v -> get_metadata(v) end)
     rescue
-      error -> :error
+      _error -> :error
     end
   end
 
   def get_ordered_commands(_tasks) do
     :error
+  end
+
+  defp get_metadata(vertex) do
+    [{_vertex, data}] = :ets.lookup(@table, vertex)
+
+    Map.take(data, ["name", "command"])
+  end
+
+  defp build_graph(g, %{"name" => name} = data) do
+    :ets.insert(@table, {name, data})
+    add_vertices_edges(g, data)
+  end
+
+  defp build_graph(_g, _data) do
+    raise(ArgumentError, "Invalid request format")
   end
 
   defp add_vertices_edges(g, %{"name" => name, "requires" => []}) do

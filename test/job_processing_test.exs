@@ -15,7 +15,16 @@ defmodule JobProcessingTest do
       ]
     }
 
-    assert JobProcessing.get_ordered_commands(tasks) == ["task-1", "task-2"]
+    assert JobProcessing.get_ordered_commands(tasks) == [
+             %{
+               "name" => "task-1",
+               "command" => "rm /tmp/file1"
+             },
+             %{
+               "name" => "task-2",
+               "command" => "echo 'Hello World!'"
+             }
+           ]
   end
 
   test "with task requires create cyclic dependency" do
@@ -23,12 +32,14 @@ defmodule JobProcessingTest do
       "tasks" => [
         %{
           "name" => "task-1",
+          "command" => "rm /tmp/file1",
           "requires" => [
             "task-2"
           ]
         },
         %{
           "name" => "task-2",
+          "command" => "echo 'Hello World!'",
           "requires" => [
             "task-1"
           ]
@@ -43,15 +54,29 @@ defmodule JobProcessingTest do
     tasks = %{
       "tasks" => [
         %{
-          "name" => "task-1"
+          "name" => "task-1",
+          "command" => "rm /tmp/file1"
         },
         %{
-          "name" => "task-2"
+          "name" => "task-2",
+          "command" => "echo 'Hello World!'",
+          "requires" => [
+            "task-1"
+          ]
         }
       ]
     }
 
-    assert JobProcessing.get_ordered_commands(tasks) == ["task-1", "task-2"]
+    assert JobProcessing.get_ordered_commands(tasks) == [
+             %{
+               "name" => "task-1",
+               "command" => "rm /tmp/file1"
+             },
+             %{
+               "name" => "task-2",
+               "command" => "echo 'Hello World!'"
+             }
+           ]
   end
 
   test "with tasks requiring other tasks" do
@@ -86,6 +111,23 @@ defmodule JobProcessingTest do
       ]
     }
 
-    assert JobProcessing.get_ordered_commands(tasks) == ["task-1", "task-3", "task-2", "task-4"]
+    assert JobProcessing.get_ordered_commands(tasks) == [
+             %{
+               "name" => "task-1",
+               "command" => "touch /tmp/file1"
+             },
+             %{
+               "name" => "task-3",
+               "command" => "echo 'Hello World!' > /tmp/file1"
+             },
+             %{
+               "name" => "task-2",
+               "command" => "cat /tmp/file1"
+             },
+             %{
+               "name" => "task-4",
+               "command" => "rm /tmp/file1"
+             }
+           ]
   end
 end
