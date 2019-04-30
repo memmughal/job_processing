@@ -7,12 +7,14 @@ To start your Phoenix server:
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
-Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
+## Request Format
 
-## Learn more
+  * In order to get json response, please run the following curl request with application/json accept header
 
-  * Official website: http://www.phoenixframework.org/
-  * Guides: https://hexdocs.pm/phoenix/overview.html
-  * Docs: https://hexdocs.pm/phoenix
-  * Mailing list: http://groups.google.com/group/phoenix-talk
-  * Source: https://github.com/phoenixframework/phoenix
+`curl -d '{"tasks": [ { "name": "task-1", "command": "rm /tmp/file1" }, { "name": "task-2", "command": "rm /tmp/file2" } ] }' -H "Content-Type: application/json" -H "Accept: application/json" -X POST http://localhost:4000/process-jobs`
+
+
+  * Also service returns text response, please run the following curl request with text/plain accept header
+
+`curl -d '{"tasks": [ { "name": "task-1", "command": "rm /tmp/file1" }, { "name": "task-2", "command": "rm /tmp/file2" } ] }' -H "Content-Type: application/json" -H "Accept: text/plain" -X POST http://localhost:4000/process-jobs`
+
