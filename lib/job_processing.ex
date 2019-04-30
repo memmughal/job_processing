@@ -5,29 +5,38 @@ defmodule JobProcessing do
   @table :tasks
 
   def get_ordered_commands(%{"tasks" => tasks}) when is_list(tasks) do
-    :ets.new(@table, [:named_table, :public])
-    g = Graph.new()
+    graph = initialize()
 
-    try do
-      g =
-        tasks
-        |> Enum.reduce(g, fn v, g -> build_graph(g, v) end)
+    graph =
+      tasks
+      |> Enum.reduce(graph, fn v, graph -> build_graph(graph, v) end)
 
-      g
-      |> Graph.is_acyclic?()
-      |> case do
-        true -> g
-        false -> raise(ArgumentError, "Cycles exist")
-      end
-      |> Graph.postorder()
-      |> Enum.map(fn v -> get_metadata(v) end)
-    rescue
-      _error -> :error
+    with {:ok, _graph} <- check_if_graph_is_cyclic(graph) do
+      result =
+        graph
+        |> Graph.postorder()
+        |> Enum.map(fn v -> get_metadata(v) end)
+
+      {:ok, result}
     end
   end
 
   def get_ordered_commands(_tasks) do
-    :error
+    {:error, :unprocessable_entity}
+  end
+
+  defp initialize do
+    :ets.new(@table, [:named_table, :public])
+    Graph.new()
+  end
+
+  defp check_if_graph_is_cyclic(graph) do
+    graph
+    |> Graph.is_acyclic?()
+    |> case do
+      true -> {:ok, graph}
+      false -> {:error, :cyclic_dependency_exist}
+    end
   end
 
   defp get_metadata(vertex) do
@@ -36,29 +45,29 @@ defmodule JobProcessing do
     Map.take(data, ["name", "command"])
   end
 
-  defp build_graph(g, %{"name" => name} = data) do
+  defp build_graph(graph, %{"name" => name} = data) do
     :ets.insert(@table, {name, data})
-    add_vertices_edges(g, data)
+    add_vertices_edges(graph, data)
   end
 
-  defp build_graph(_g, _data) do
-    raise(ArgumentError, "Invalid request format")
+  defp build_graph(_graph, _data) do
+    {:error, :unprocessable_entity}
   end
 
-  defp add_vertices_edges(g, %{"name" => name, "requires" => []}) do
-    Graph.add_vertex(g, name)
+  defp add_vertices_edges(graph, %{"name" => name, "requires" => []}) do
+    Graph.add_vertex(graph, name)
   end
 
-  defp add_vertices_edges(g, %{"name" => name, "requires" => requires}) do
+  defp add_vertices_edges(graph, %{"name" => name, "requires" => requires}) do
     edges = get_all_edges(name, requires)
 
-    g
+    graph
     |> Graph.add_vertex(name)
     |> Graph.add_edges(edges)
   end
 
-  defp add_vertices_edges(g, %{"name" => name}) do
-    Graph.add_vertex(g, name)
+  defp add_vertices_edges(graph, %{"name" => name}) do
+    Graph.add_vertex(graph, name)
   end
 
   defp get_all_edges(name, requires) do
