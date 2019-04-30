@@ -4,7 +4,7 @@ defmodule JobProcessing do
   """
   @table :tasks
 
-  def get_ordered_commands(%{"tasks" => tasks}) when is_list(tasks) do
+  def get_ordered_commands(%{"tasks" => tasks}) when length(tasks) > 0 do
     graph = initialize()
 
     graph =

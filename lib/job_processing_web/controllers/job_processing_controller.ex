@@ -26,7 +26,7 @@ defmodule JobProcessingWeb.JobProcessingController do
     render(conn, "jobs.json", %{tasks: response})
   end
 
-  defp format_text(response) when length(response) > 1 do
+  defp format_text(response) when length(response) > 0 do
     commands =
       response
       |> Enum.map(fn job -> job["command"] end)
