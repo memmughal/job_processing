@@ -1,8 +1,11 @@
 defmodule JobProcessingWeb.Router do
   use JobProcessingWeb, :router
 
+  alias JobProcessingWeb.Plugs.ValidateTasksRequestBody
+
   pipeline :api do
     plug :accepts, ["json", "text"]
+    plug ValidateTasksRequestBody
   end
 
   scope "/", JobProcessingWeb do
