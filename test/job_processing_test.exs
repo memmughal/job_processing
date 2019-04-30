@@ -1,6 +1,44 @@
 defmodule JobProcessingTest do
   use ExUnit.Case
 
+  test "with no task requires other task" do
+    tasks = %{
+      "tasks" => [
+        %{
+          "name" => "task-1",
+          "command" => "rm /tmp/file1"
+        },
+        %{
+          "name" => "task-2",
+          "command" => "echo 'Hello World!'"
+        }
+      ]
+    }
+
+    assert JobProcessing.get_ordered_commands(tasks) == ["task-1", "task-2"]
+  end
+
+  test "with task requires create cyclic dependency" do
+    tasks = %{
+      "tasks" => [
+        %{
+          "name" => "task-1",
+          "requires" => [
+            "task-2"
+          ]
+        },
+        %{
+          "name" => "task-2",
+          "requires" => [
+            "task-1"
+          ]
+        }
+      ]
+    }
+
+    assert JobProcessing.get_ordered_commands(tasks) == :error
+  end
+
   test "with one task requires other task" do
     tasks = %{
       "tasks" => [
